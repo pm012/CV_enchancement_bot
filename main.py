@@ -18,7 +18,7 @@ async def llm_test():
     chat_service = GeminiChatService(token=GEMINI_TOKEN)
 
     system_prompt = ("You are AI security expert. Answer the following question in detail."
-    "Keep your answer concise and to the point. Avoid unnecessary elaboration.")
+    "Keep your answer short, concise and to the point. Avoid unnecessary elaboration.")
 
     test_question = "What types of vulnerabilities are commonly found in ai applications, and how can they be mitigated? E.g. prompt injection, data poisoning, model inversion, adversarial attacks, etc.  "
 
