@@ -1,13 +1,14 @@
 from modes.base import BotMode
-from util import send_text, extract_text_from_file
+from util import send_photo, send_text, extract_text_from_file
 
 class ResumeSummaryMode(BotMode):
     async def start(self, update, context):
         context.user_data["cv_text"] = None
         context.user_data["cv_step"] = "WAITING_CV"
+        await send_photo(update, context, "AI_CV_Summary.png")
         await send_text(
             update, context, 
-            "📝 Let's generate a professional **Resume Summary**.\n\n"
+            "Let's generate a professional **Resume Summary**.\n\n"
             "Please **upload your CV** or paste your experience details as text here:"
         )
 
@@ -34,7 +35,7 @@ class ResumeSummaryMode(BotMode):
             vacancy_text = update.message.text
             cv_text = context.user_data.get("cv_text")
             
-            my_message = await send_text(update, context, "🤖 Synthesizing a tailored resume summary...")
+            my_message = await send_text(update, context, "Synthesizing a tailored resume summary...")
             
             prompt_instruction = (
                 "You are an expert technical recruiter. Based on the user's CV and the target vacancy, "

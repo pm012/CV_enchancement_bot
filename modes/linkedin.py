@@ -1,10 +1,11 @@
 from modes.base import BotMode
-from util import send_text, extract_text_from_file
+from util import send_photo, send_text, extract_text_from_file
 
 class LinkedInMode(BotMode):
     async def start(self, update, context):
         context.user_data["cv_text"] = None
         context.user_data["cv_step"] = "WAITING_CV"
+        await send_photo(update, context, "LinkedInSummary.png")
         await send_text(update, context, "Let's craft your optimized **LinkedIn 'About' Summary**.\n\nPlease upload or paste your CV text:")
 
     async def handle_message(self, update, context):

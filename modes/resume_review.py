@@ -1,10 +1,11 @@
 from modes.base import BotMode
-from util import send_text, extract_text_from_file
+from util import send_photo, send_text, extract_text_from_file
 
 class ResumeReviewMode(BotMode):
     async def start(self, update, context):
         context.user_data["cv_text"] = None
         context.user_data["cv_step"] = "WAITING_CV"
+        await send_photo(update, context, "CV_improvement.jpeg")
         await send_text(
             update, context, 
             "🔍 Let's perform a thorough **Resume Review** against a job specification.\n\n"

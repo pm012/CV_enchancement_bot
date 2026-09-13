@@ -1,13 +1,14 @@
 from modes.base import BotMode
-from util import send_text, extract_text_from_file
+from util import send_text, extract_text_from_file, send_photo
 
 class CoverLetterMode(BotMode):
     async def start(self, update, context):
         context.user_data["cv_text"] = None
         context.user_data["cv_step"] = "WAITING_CV"
+        await send_photo(update, context, "cover-letter.jpeg")
         await send_text(
             update, context, 
-            "📄 Let's create your tailored **Cover Letter**.\n\n"
+            "Let's create your tailored **Cover Letter**.\n\n"
             "Please **upload your CV** (.pdf or .docx) or paste your resume details as text here:"
         )
 
