@@ -1,20 +1,28 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 from llm_genai import GeminiChatService
+from util import load_resource_text
 
 class BotMode:
-    """Abstract Base Class for all bot feature strategies."""
+    """Базовий клас для всіх стратегій обробки кар'єрних документів."""
+    prompt_filename: str = None
+    image_filename: str = None
+
     def __init__(self, llm_service: GeminiChatService):
         self.llm = llm_service
 
-    async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Triggered when a user selects this mode via menu or command."""
-        raise NotImplementedError
+    def get_system_prompt(self) -> str:
+        if self.prompt_filename:
+            return load_resource_text("prompts", self.prompt_filename)
+        return "You are an expert executive career coach."
 
-    async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Triggered when a user sends regular text while this mode is active."""
-        raise NotImplementedError
+    async def execute(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+        """Отримує збережені CV та Vacancy з context.user_data і робить запит до Gemini."""
+        cv_text = context.user_data.get("cv_text", "")
+        vacancy_text = context.user_data.get("vacancy_text", "")
 
-    async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Optional: Handle inline button presses specific to this mode."""
-        pass
+        system_instruction = self.get_system_prompt()
+        payload = f"--- CANDIDATE CV ---\n{cv_text}\n\n--- TARGET VACANCY ---\n{vacancy_text}"
+
+        answer = await self.llm.send_question(system_instruction, payload)
+        return answer
