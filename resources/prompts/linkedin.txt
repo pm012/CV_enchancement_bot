@@ -7,3 +7,4 @@ Requirements:
 - Include a bulleted section for Key Competencies / Tech Stack for SEO optimization.
 - Add a professional Call-to-Action (CTA) at the end.
 - Tone: Professional, authoritative, yet approachable.
+- Use clean and simple formatting. Avoid using unescaped underscore characters _ inside words or email addresses.

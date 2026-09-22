@@ -7,3 +7,4 @@ Guidelines:
 - Maintain a confident, professional, and enthusiastic tone.
 - Keep it concise (under 350 words).
 - Format cleanly with professional line breaks and clear structure (Salutation, Hook, Core Value Pitch, Call to Action, Sign-off).
+- Use clean and simple formatting. Avoid using unescaped underscore characters _ inside words or email addresses.
