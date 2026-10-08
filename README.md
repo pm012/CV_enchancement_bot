@@ -3,7 +3,16 @@
 
 # Telegram Bot asistant for improvement Resume.
 
-The bot uses GenAI API to adjust resume with accordance to Vacancy.
+The bot uses GenAI API to adjust resume with accordance to Vacancy. It is possible to navigate throughout 4 modes and reset initial data.
+
+State/Workflow diagrams:
+
+<p align="center">
+  <img src="./assets/resume-enhancer-state-diagram.svg" alt="App State Diagram" width="700">
+</p>
+
+
+
 
 ```mermaid
 stateDiagram-v2
@@ -44,3 +53,5 @@ stateDiagram-v2
 
 
 TBD later: 
+1. Profile photo improvement (separate model)
+2. Create PDF with adjusted resume
