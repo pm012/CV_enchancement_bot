@@ -1,5 +1,5 @@
-<b>Вітаю у вашому AI Career Assistant! 🚀</b>
+<b>Greetings! I'm your personal AI Career Assistant! 🚀</b>
 
-Я допоможу адаптувати ваше резюме, підготувати супровідний лист або оптимізувати LinkedIn-профіль під бажану вакансію.
+I'll help you to prepare and adjust your CV, prepare cover letter or  optimize LinkedIn-profile for defined vacancy.
 
-Крок 1 з 2: Будь ласка, **завантажте ваше CV** (у форматі `.pdf` / `.docx`) або надішліть його текстом у чат:
+Step 1 of 2: Please, **load your CV** (with format '.pdf' / '.docx') or send it as a text to the chat:

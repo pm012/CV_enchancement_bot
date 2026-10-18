@@ -31,10 +31,10 @@ load_dotenv()
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 GEMINI_TOKEN = os.getenv("GEMINI_API_KEY")
 
-# Ініціалізація сервісу Gemini
+# Init of  Gemini service
 llm_service = GeminiChatService(token=GEMINI_TOKEN)
 
-# Реєстрація стратегій
+# Register strategies
 MODES = {
     "cover_letter": CoverLetterMode(llm_service),
     "linkedin": LinkedInMode(llm_service),
@@ -42,7 +42,7 @@ MODES = {
     "review": ResumeReviewMode(llm_service),
 }
 
-# Кнопки інструментів у головному меню
+# Tool buttons in the main menu
 ACTION_BUTTONS = {
     "mode_review": "🔍 Audit Resume vs Vacancy",
     "mode_cover_letter": "📝 Create Cover Letter",
@@ -52,16 +52,16 @@ ACTION_BUTTONS = {
 }
 
 TELEGRAM_COMMANDS = {
-    "start": "Головне меню / Почати заново",
-    "review": "Аудит резюме під вакансію",
-    "cover_letter": "Згенерувати Cover Letter",
-    "linkedin": "Оптимізувати LinkedIn",
-    "summary": "Оцінка відповідності (Match)",
+    "start": "Main menu / Restart",
+    "review": "Audit of resume (CV) for vacancy",
+    "cover_letter": "Generate Cover Letter",
+    "linkedin": "Optmize LinkedIn",
+    "summary": "Match assesment (Match evaluation)",
 }
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Скидає контекст і починає покроковий збір CV та вакансії."""
+    """Resets context and starts step-by-step collection of CV and vacancy."""
     context.user_data.clear()
     context.user_data["step"] = "WAITING_CV"
 
@@ -69,14 +69,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await send_photo(update, context, "AI-Resume-welcomescreen.png")
 
     welcome_msg = load_resource_text("text", "welcome.txt") or (
-        "<b>Вітаю у вашому AI Career Assistant! 🚀</b>\n\n"
-        "Крок 1 з 2: Будь ласка, <b>завантажте ваше CV</b> (.pdf / .docx) або надішліть його текстом:"
+        "<b>Greetings!!! I'm your personal AI Career Assistant!</b>\n\n"
+        "Step 1 out of 2: Please, <b>upload your CV</b> (.pdf / .docx) or sent it as a text:"
     )
     await send_text(update, context, welcome_msg)
 
 
 async def handle_user_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обробляє тексти та документи в залежності від поточного стану (step)."""
+    """Handles texts and documents depending from current state/mode (step)."""
     user_text = update.message.text
     if user_text and user_text.startswith("Restart / Back to Main Menu"):
         await start(update, context)
@@ -84,7 +84,7 @@ async def handle_user_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     step = context.user_data.get("step")
 
-    # Крок 1: Очікуємо CV
+    # Крок 1: Awating for CV
     if step == "WAITING_CV":
         if update.message.document:
             doc_file = await update.message.document.get_file()
@@ -94,81 +94,81 @@ async def handle_user_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
             cv_text = update.message.text
 
         if not cv_text:
-            await send_text(update, context, "⚠️ Не вдалося зчитати текст. Будь ласка, надішліть `.pdf`/`.docx` файл або вставте текст.")
+            await send_text(update, context, "Not able to read the text. Please, send '.pdf'/'.docx' file  or paste text.")
             return
 
         context.user_data["cv_text"] = cv_text
         context.user_data["step"] = "WAITING_VACANCY"
 
         send_vacancy_msg = load_resource_text("text", "send_vacancy.txt") or (
-            "✅ <b>Резюме збережено!</b>\n\n"
-            "Крок 2 з 2: Тепер надішліть <b>опис вакансії</b> (Job Description):"
+            "\u2705 <b>CV was successfully saved!</b>\n\n"
+            "Step 2 out of 2: Now send <b>vacansy description</b> (Job Description):"
         )
         await send_text(update, context, send_vacancy_msg)
 
-    # Крок 2: Очікуємо Вакансію
+    # Step 2: Awaiting Vacancy
     elif step == "WAITING_VACANCY":
         vacancy_text = update.message.text
         if not vacancy_text:
-            await send_text(update, context, "⚠️ Будь ласка, надішліть опис вакансії текстом.")
+            await send_text(update, context, "\u26A0\uFE0F Please, send job description as a text.")
             return
 
         context.user_data["vacancy_text"] = vacancy_text
         context.user_data["step"] = "MAIN_MENU"
 
         main_menu_msg = load_resource_text("text", "main_menu.txt") or (
-            "🎉 <b>Чудово! Ваше CV та опис вакансії збережено.</b>\n\n"
-            "Тепер ви можете вільно обирати будь-який інструмент нижче — повторно завантажувати документи не потрібно!"
+            "🎉 <b>Well done! Your CV and job description were successfully saved.</b>\n\n"
+            "Now you can select any of available tools(options) below! No need to upload CV or text description of job again!"
         )
         await send_buttons(update, context, main_menu_msg, ACTION_BUTTONS)
 
-    # Постійне меню після завантаження документів
+    # Re-display menu after loading documents
     elif step == "MAIN_MENU":
         await send_buttons(
             update, 
             context, 
-            "Контекст збережено! Оберіть потрібну дію або натисніть <b>Restart</b> для завантаження нових документів:", 
+            "Context is saved! Select required action or press <b>Restart</b> to load new documents:", 
             ACTION_BUTTONS
         )
 
     else:
-        await send_text(update, context, "Будь ласка, натисніть /start щоб розпочати спочатку.")
+        await send_text(update, context, "Please, press /start to start from scratch.")
 
 
 async def execute_strategy(update: Update, context: ContextTypes.DEFAULT_TYPE, mode_key: str):
-    """Викликає вибрану стратегію та відображає результат з безпечним парсингом."""
+    """Calls choosen stretegy and displayes result with safe parser."""
     strategy = MODES.get(mode_key)
     if not strategy:
         return
 
     if not context.user_data.get("cv_text") or not context.user_data.get("vacancy_text"):
-        await send_text(update, context, "⚠️ Будь ласка, спочатку завантажте CV та вакансію. Натисніть /start.")
+        await send_text(update, context, "\u26A0\uFE0F Please, load your CV and job description at first. Press /start.")
         return
 
     if getattr(strategy, "image_filename", None):
         await send_photo(update, context, strategy.image_filename)
 
-    status_msg = await send_text(update, context, "🤖 <i>ШІ аналізує ваші дані та генерує відповідь, зачекайте...</i>")
+    status_msg = await send_text(update, context, "🤖 <i>AI makes analysis of your data and generates resonse. Please hold a moment to get resonse...</i>")
 
     try:
         result = await strategy.execute(update, context)
         
-        # Спроба відправити з форматуванням Markdown
+        # Attempt to send with  Markdown formatting
         try:
             await status_msg.edit_text(result, parse_mode=ParseMode.MARKDOWN)
         except BadRequest as e:
-            # Якщо Telegram сваряться на не закриті теги Markdown, надсилаємо як звичайний текст
+            # If Telegram don't accept unclosed tags Markdown, send as a plain text
             print(f"Markdown parsing failed, sending raw text: {e}")
             await status_msg.edit_text(result, parse_mode=None)
 
     except Exception as e:
-        await status_msg.edit_text(f"⚠️ Виникла помилка під час обробки: {e}")
+        await status_msg.edit_text(f"⚠️ Got an error during processing: {e}")
 
-    await send_buttons(update, context, "<b>Що бажаєте зробити далі?</b>", ACTION_BUTTONS)
+    await send_buttons(update, context, "<b>What are you going to select?</b>", ACTION_BUTTONS)
 
 
 async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обробляє натискання Inline-кнопок."""
+    """Handles selecting Inline-buttons."""
     query = update.callback_query
     await query.answer()
 
@@ -184,7 +184,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
 
 
 async def command_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обробляє команди з меню Telegram (/review, /cover_letter тощо)."""
+    """Handles commands from the Telegram menu (/review, /cover_letter тощо)."""
     cmd_map = {
         "/review": "review",
         "/cover_letter": "cover_letter",
@@ -199,7 +199,7 @@ async def command_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYP
 def main():
     app = ApplicationBuilder().token(TOKEN).build()
 
-    # Хендлери
+    # Hendlers
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler(["review", "cover_letter", "linkedin", "summary"], command_menu_handler))
     app.add_handler(CallbackQueryHandler(handle_callback_query, pattern="^(mode_|cmd_restart)"))

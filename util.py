@@ -14,13 +14,13 @@ from telegram import (
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
-# Визначення кореневої директорії проєкту та папки ресурсів
+# Define root directory of  a project and resources folder
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 RESOURCES_DIR = os.path.join(BASE_DIR, "resources")
 
 
 def extract_text_from_file(file_bytes: bytes, file_name: str) -> str:
-    """Витягує текст із завантажених файлів PDF або DOCX."""
+    """Extracts text from the loaded files PDF or DOCX."""
     text = ""
     file_name_lower = file_name.lower()
 
@@ -39,22 +39,22 @@ def extract_text_from_file(file_bytes: bytes, file_name: str) -> str:
                     text += para.text + "\n"
 
     except Exception as e:
-        print(f"Помилка під час зчитування файлу {file_name}: {e}")
+        print(f"Error while reading the file {file_name}: {e}")
         return ""
 
     return text.strip()
 
 
 def load_resource_text(category: str, name: str) -> str:
-    """Завантажує текстовий файл із папки resources.
+    """Loading text file from the resources folder.
     
-    Приклад використання:
+    Usage example:
     - load_resource_text("prompts", "cover_letter.txt") -> resources/prompts/cover_letter.txt
     - load_resource_text("text", "welcome.txt") -> resources/text/welcome.txt
     """
     path = os.path.join(RESOURCES_DIR, category, name)
     if not os.path.exists(path):
-        print(f"Попередження: файл ресурсу не знайдено за шляхом: {path}")
+        print(f"Warning: resource file was not found using the path: {path}")
         return ""
 
     with open(path, "r", encoding="utf-8") as f:
@@ -68,7 +68,7 @@ async def send_text(
     parse_mode=ParseMode.HTML,
     reply_markup=None,
 ) -> Message:
-    """Універсальна функція для відправки текстових повідомлень."""
+    """Generic function for sending text messages."""
     chat_id = update.effective_chat.id
     return await context.bot.send_message(
         chat_id=chat_id,
@@ -85,10 +85,10 @@ async def send_buttons(
     buttons: dict,
     layout: tuple = (2, 2, 1),
 ) -> Message:
-    """Відправляє повідомлення з Inline-кнопками.
+    """Send message with Inline-buttons.
     
-    :param buttons: Словник вида {'callback_data': 'Текст кнопки'}
-    :param layout: Кортеж з кількістю кнопок у кожному рядку (наприклад, (2, 2, 1))
+    :param buttons: Dictionary {'callback_data': 'Button text'}
+    :param layout: Tuple with number of buttons in each row  (for example, (2, 2, 1))
     """
     keyboard = []
     keys = list(buttons.keys())
@@ -122,10 +122,10 @@ async def send_buttons(
 async def send_photo(
     update: Update, context: ContextTypes.DEFAULT_TYPE, filename: str
 ) -> Message | None:
-    """Відправляє зображення з папки resources/images/."""
+    """Sends image from the folder resources/images/."""
     path = os.path.join(RESOURCES_DIR, "images", filename)
     if not os.path.exists(path):
-        print(f"Зображення не знайдено: {path}")
+        print(f"Image was not found: {path}")
         return None
 
     with open(path, "rb") as photo:
@@ -137,7 +137,7 @@ async def send_photo(
 async def show_main_menu(
     update: Update, context: ContextTypes.DEFAULT_TYPE, commands: dict
 ):
-    """Реєструє список команд у кнопці 'Menu' в інтерфейсі Telegram."""
+    """Register list of commands in the 'Menu' button  to Telegram interface."""
     command_list = [BotCommand(key, value) for key, value in commands.items()]
     await context.bot.set_my_commands(
         command_list, scope=BotCommandScopeChat(chat_id=update.effective_chat.id)

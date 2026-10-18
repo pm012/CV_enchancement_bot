@@ -4,7 +4,7 @@ from llm_genai import GeminiChatService
 from util import load_resource_text
 
 class BotMode:
-    """Базовий клас для всіх стратегій обробки кар'єрних документів."""
+    """Base class for all strategies of handling carier documents."""
     prompt_filename: str = None
     image_filename: str = None
 

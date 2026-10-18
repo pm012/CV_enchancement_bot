@@ -4,34 +4,34 @@ from google.genai import types
 
 class GeminiChatService:
     """
-    Сервіс для взаємодії з Gemini API у stateless-режимі.
-    Кожен запит є ізольованим і не зберігає контекст попередніх повідомлень.
+    Service form interraction with Gemini API in stateless mode.
+    Every query is isolated and don't save context from the past messages.
     """
     def __init__(self, token: str | None = None, model_name: str = "gemini-3.6-flash"):
         api_key = token or os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise ValueError("GEMINI_API_KEY is missing!")
         
-        # Ініціалізація нового клієнта SDK Google GenAI
+        # Init new client SDK Google GenAI
         self.client = genai.Client(api_key=api_key)
         self.model_name = model_name
 
     async def send_question(self, prompt_text: str, message_text: str) -> str:
         """
-        Відправляє ізольований запит до моделей Gemini.
+        Sends isolated request to Gemini models.
         
-        :param prompt_text: Системні інструкції (System Instruction / Role)
-        :param message_text: Основне навантаження (CV + Job Description)
-        :return: Згенерована відповідь від ШІ у вигляді рядка
+        :param prompt_text: System instructions (System Instruction / Role)
+        :param message_text: Main loadя (CV + Job Description)
+        :return: Generated response from AI as a string
         """
         try:
-            # Налаштування конфігурації генерації
+            # Set up generation configuration
             config = types.GenerateContentConfig(
                 system_instruction=prompt_text,
-                temperature=0.3,  # Низька температура для більш точного та фактологічного аналізу CV
+                temperature=0.3,  # Low temperature from the keen and factological analysis of CV
             )
 
-            # Виклик генерування без автоматичного Function Calling
+            # Call generation without automatic Function Calling
             response = await self.client.aio.models.generate_content(
                 model=self.model_name,
                 contents=message_text,
@@ -40,7 +40,7 @@ class GeminiChatService:
 
             if response.text:
                 return response.text
-            return "⚠️ Модель повернула порожню відповідь."
+            return "⚠️ Model returned empty response."
 
         except Exception as e:
             print(f"Error in GeminiChatService: {e}")

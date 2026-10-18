@@ -1,5 +1,5 @@
-🎉 **Чудово! Ваше CV та опис вакансії збережено.**
+🎉 **Well Done! Your CV and job descritption were successfully saved.**
 
-Тепер ви можете вільно перемикатися між інструментами нижче — вам **не потрібно** заново завантажувати документи для кожної дії!
+Now you can switch between tolls below - you  **don't need** to load documents for each selected action again!
 
-Оберіть потрібний інструмент:
+Select needed tool:
