@@ -89,6 +89,9 @@ class GeminiChatService:
         config = types.GenerateContentConfig(
             system_instruction=prompt_text,
             temperature=0.3,
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(
+                disable=True
+            ),
         )
 
         if self._quota_blocked_until is not None:

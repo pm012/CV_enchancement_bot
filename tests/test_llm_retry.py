@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import AsyncMock, patch
 
 from google.genai.errors import ClientError, ServerError
+from google.genai import _extra_utils
 
 from llm_genai import GeminiChatService, GeminiQuotaExceeded
 
@@ -11,9 +12,11 @@ class FakeModels:
     def __init__(self, outcomes):
         self.outcomes = list(outcomes)
         self.calls = 0
+        self.last_kwargs = None
 
     async def generate_content(self, **kwargs):
         self.calls += 1
+        self.last_kwargs = kwargs
         outcome = self.outcomes.pop(0)
         if isinstance(outcome, Exception):
             raise outcome
@@ -45,6 +48,9 @@ class GeminiRetryTests(unittest.TestCase):
 
         self.assertEqual(result, "Updated result")
         self.assertEqual(service.client.aio.models.calls, 3)
+        config = service.client.aio.models.last_kwargs["config"]
+        self.assertTrue(config.automatic_function_calling.disable)
+        self.assertTrue(_extra_utils.should_disable_afc(config))
         self.assertEqual(
             [call.args[0] for call in sleep.await_args_list],
             [1, 2],
