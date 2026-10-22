@@ -102,7 +102,7 @@ async def handle_user_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["step"] = "WAITING_VACANCY"
 
         send_vacancy_msg = load_resource_text("text", "send_vacancy.txt") or (
-            "\u2705 <b>CV was successfully saved!</b>\n\n"
+            "🎉 <b>CV was successfully saved!</b>\n\n"
             "Step 2 out of 2: Now send <b>vacansy description</b> (Job Description):"
         )
         await send_text(update, context, send_vacancy_msg)
@@ -263,7 +263,7 @@ async def execute_strategy(update: Update, context: ContextTypes.DEFAULT_TYPE, m
         return
 
     if not context.user_data.get("cv_text") or not context.user_data.get("vacancy_text"):
-        await send_text(update, context, "\u26A0\uFE0F Please, load your CV and job description at first. Press /start.")
+        await send_text(update, context, "⚠️ Please, load your CV and job description at first. Press /start.")
         return
 
     if getattr(strategy, "image_filename", None):
