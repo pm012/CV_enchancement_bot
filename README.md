@@ -41,7 +41,7 @@ The bot keeps each user's CV, vacancy, selected mode, latest result, corrections
 
 # CV Enhancement Telegram Bot State Diagram
 
-<img src="assets/cv_enhancement_bot_state_diagram.png" alt="CV Enhancement Telegram Bot State Diagram" width="500">
+<img src="assets/cv_enhancement_bot_state_diagram.png" alt="CV Enhancement Telegram Bot State Diagram" width="900">
 
 
 ```mermaid
