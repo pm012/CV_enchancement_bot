@@ -1,5 +1,6 @@
 import io
 import os
+import re
 from pypdf import PdfReader
 from docx import Document
 from telegram import (
@@ -17,6 +18,53 @@ from telegram.ext import ContextTypes
 # Define root directory of  a project and resources folder
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 RESOURCES_DIR = os.path.join(BASE_DIR, "resources")
+TELEGRAM_TEXT_LIMIT = 4096
+
+
+def split_telegram_text(text: str, limit: int = TELEGRAM_TEXT_LIMIT) -> list[str]:
+    """Split text into Telegram-safe chunks, counting UTF-16 code units."""
+    if limit < 1:
+        raise ValueError("Telegram text limit must be positive.")
+
+    chunks = []
+    current = []
+    current_length = 0
+    for character in text:
+        character_length = len(character.encode("utf-16-le")) // 2
+        if current_length + character_length > limit:
+            chunk = "".join(current)
+            newline = chunk.rfind("\n")
+            if newline > 0:
+                chunks.append(chunk[:newline + 1])
+                remainder = chunk[newline + 1:]
+                current = list(remainder)
+                current_length = sum(
+                    len(char.encode("utf-16-le")) // 2 for char in current
+                )
+            else:
+                chunks.append(chunk)
+                current = []
+                current_length = 0
+
+        current.append(character)
+        current_length += character_length
+
+    if current:
+        chunks.append("".join(current))
+    return chunks
+
+
+def to_plain_text(text: str) -> str:
+    """Remove common Markdown syntax while preserving plain-text content."""
+    text = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r"\1 (\2)", text)
+    text = re.sub(r"(?m)^\s{0,3}#{1,6}\s*", "", text)
+    text = re.sub(r"(?m)^\s*>\s?", "", text)
+    text = re.sub(r"(?m)^\s*(?:[-*+]\s+|\d+[.)]\s+)", "", text)
+    text = re.sub(r"\*\*(.*?)\*\*|__(.*?)__", lambda match: match.group(1) or match.group(2), text)
+    text = re.sub(r"(?<!\w)\*(?!\s)(.+?)(?<!\s)\*(?!\w)", r"\1", text)
+    text = re.sub(r"~~(.*?)~~", r"\1", text)
+    text = text.replace("`", "")
+    return text.strip()
 
 
 def extract_text_from_file(file_bytes: bytes, file_name: str) -> str:

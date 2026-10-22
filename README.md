@@ -3,7 +3,11 @@
 
 # Telegram Bot asistant for improvement Resume.
 
-The bot uses GenAI API to adjust resume with accordance to Vacancy. It is possible to navigate throughout 4 modes and reset initial data.
+The bot uses the Google GenAI API to tailor career documents to a vacancy. Users can navigate across four modes, refine any result by sending corrections or adjustments, and reset the saved CV and vacancy. Facts the user explicitly confirms in a correction are treated as candidate-provided information even if they were not written in the uploaded CV. Temporary Gemini API errors (HTTP 429 and 5xx) are retried with bounded backoff; daily quota exhaustion is not retried and is reported to the user. Successfully generated tailored resumes are cached for repeated PDF downloads until the CV, vacancy, audit, or corrections change.
+
+After an Audit Resume vs Vacancy result, users can download an AI-tailored resume as a PDF. The tailored resume uses the uploaded CV, vacancy, audit, and any corrections, and must not add unsupported facts.
+
+Date comparisons use the current UTC date supplied to the model. Model output is requested as concise plain text without Markdown formatting.
 
 State/Workflow diagrams:
 

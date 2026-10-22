@@ -4,7 +4,9 @@ Create an optimized, engaging, and high-converting LinkedIn 'About' section base
 Requirements:
 - Craft a strong opening hook highlighting their core expertise.
 - Frame achievements around business impact, scalability, and technical leadership.
-- Include a bulleted section for Key Competencies / Tech Stack for SEO optimization.
+- Include a concise Key Competencies / Tech Stack section, with one competency per line.
 - Add a professional Call-to-Action (CTA) at the end.
 - Tone: Professional, authoritative, yet approachable.
-- Use clean and simple formatting. Avoid using unescaped underscore characters _ inside words or email addresses.
+- Use plain text only; do not use Markdown syntax, asterisks, hash headings, backticks, or Markdown bullets.
+- Do not invent names, dates, achievements, contact details, or other facts absent from the CV and vacancy.
+- Keep the complete result concise and scannable.

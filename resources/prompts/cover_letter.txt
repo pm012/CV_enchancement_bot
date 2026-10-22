@@ -6,5 +6,6 @@ Guidelines:
 - Highlight relevant commercial experience, key accomplishments, and technical stack without repeating the CV word-for-word.
 - Maintain a confident, professional, and enthusiastic tone.
 - Keep it concise (under 350 words).
-- Format cleanly with professional line breaks and clear structure (Salutation, Hook, Core Value Pitch, Call to Action, Sign-off).
-- Use clean and simple formatting. Avoid using unescaped underscore characters _ inside words or email addresses.
+- Use professional line breaks and a clear structure: salutation, opening, value pitch, call to action, and sign-off.
+- Use plain text only; do not use Markdown syntax, asterisks, hash headings, backticks, or Markdown bullets.
+- Do not invent names, dates, achievements, contact details, or other facts absent from the CV and vacancy. Omit unavailable details.

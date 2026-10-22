@@ -1,3 +1,4 @@
+import math
 import os
 from dotenv import load_dotenv
 from telegram import Update
@@ -10,7 +11,7 @@ from telegram.ext import (
     ContextTypes,
 )
 
-from llm_genai import GeminiChatService
+from llm_genai import GeminiChatService, GeminiQuotaExceeded
 from util import (
     extract_text_from_file,
     send_text,
@@ -18,14 +19,14 @@ from util import (
     send_photo,
     show_main_menu,
     load_resource_text,
+    split_telegram_text,
 )
 
-from telegram.constants import ParseMode
-from telegram.error import BadRequest
 from modes.cover_letter import CoverLetterMode
 from modes.linkedin import LinkedInMode
 from modes.resume_summary import ResumeSummaryMode
 from modes.resume_review import ResumeReviewMode
+from resume_pdf import create_resume_pdf
 
 load_dotenv()
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -122,21 +123,141 @@ async def handle_user_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         await send_buttons(update, context, main_menu_msg, ACTION_BUTTONS)
 
-    # Re-display menu after loading documents
+    elif step == "AWAITING_ADJUSTMENT":
+        correction = update.message.text
+        if not correction:
+            await send_text(update, context, "Please send your correction or adjustment as text.")
+            return
+
+        last_mode = context.user_data.get("last_mode")
+        strategy = MODES.get(last_mode)
+        if not strategy:
+            await send_text(update, context, "Please select a mode again before sending an adjustment.")
+            return
+
+        adjustments = context.user_data.setdefault("mode_adjustments", [])
+        if correction not in adjustments:
+            adjustments.append(correction)
+        await retry_saved_adjustments(update, context)
+
     elif step == "MAIN_MENU":
-        await send_buttons(
-            update, 
-            context, 
-            "Context is saved! Select required action or press <b>Restart</b> to load new documents:", 
-            ACTION_BUTTONS
+        await send_text(
+            update,
+            context,
+            "Your CV and vacancy are ready. Use the buttons in the previous "
+            "message to choose a tool.",
         )
 
     else:
         await send_text(update, context, "Please, press /start to start from scratch.")
 
 
+async def send_mode_actions(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    mode_key: str,
+):
+    """Show available actions and tell the user how to revise the result."""
+    buttons = dict(ACTION_BUTTONS)
+    if mode_key == "review":
+        buttons["action_resume_pdf"] = "📄 Download Tailored Resume (PDF)"
+    layout = (2, 2, 2) if len(buttons) == 6 else (2, 2, 1)
+    await send_buttons(
+        update,
+        context,
+        "Send a correction or adjustment as a message to refine this result. "
+        "You can also select another mode below.",
+        buttons,
+        layout=layout,
+    )
+
+
+async def retry_saved_adjustments(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
+    """Apply saved corrections and offer an explicit retry when the model is unavailable."""
+    mode_key = context.user_data.get("last_mode")
+    strategy = MODES.get(mode_key)
+    adjustments = context.user_data.get("mode_adjustments", [])
+    if not strategy or not adjustments:
+        await send_text(
+            update,
+            context,
+            "There are no saved adjustments to retry. Send an adjustment after running a mode.",
+        )
+        return
+
+    status_msg = await send_text(update, context, "🤖 Revising the result with your adjustments...")
+    try:
+        result = await strategy.refine(context, adjustments)
+    except GeminiQuotaExceeded as error:
+        print(f"Gemini quota exhausted while revising {mode_key} result: {error}")
+        await status_msg.edit_text(
+            quota_exhausted_message(error),
+            parse_mode=None,
+        )
+        return
+    except Exception as error:
+        print(f"Error while revising {mode_key} result: {error}")
+        await status_msg.edit_text(
+            "⚠️ Gemini is temporarily unavailable. Your adjustment is saved; "
+            "try again using the button below.",
+            parse_mode=None,
+        )
+        await send_buttons(
+            update,
+            context,
+            "Retry the saved adjustment when the AI service is available.",
+            {"action_retry_adjustment": "🔁 Retry adjustment"},
+            layout=(1,),
+        )
+        return
+
+    context.user_data["last_result"] = result
+    await send_result(status_msg, update, context, result)
+    await send_mode_actions(update, context, mode_key)
+
+
+def quota_exhausted_message(error: GeminiQuotaExceeded) -> str:
+    """Explain the quota reset estimate and direct the user to quota settings."""
+    if error.retry_after_seconds is not None:
+        wait_minutes = max(1, math.ceil(error.retry_after_seconds / 60))
+        wait_hours, remaining_minutes = divmod(wait_minutes, 60)
+        wait_estimate = (
+            f"{wait_hours}h {remaining_minutes}m"
+            if wait_hours
+            else f"{remaining_minutes} minutes"
+        )
+        return (
+            "⚠️ The Gemini daily quota for this model is exhausted. "
+            f"Google estimates it will reset in about {wait_estimate}. "
+            "You can increase the quota or enable billing in Google AI Studio."
+        )
+    return (
+        "⚠️ The Gemini daily quota for this model is exhausted. "
+        "Please check your Google AI Studio quota or billing."
+    )
+
+
+async def send_result(status_msg, update, context, result: str):
+    """Edit the status message with a result and send any remaining chunks."""
+    chunks = split_telegram_text(result)
+    if not chunks:
+        await status_msg.edit_text("The model returned an empty response.", parse_mode=None)
+        return
+
+    await status_msg.edit_text(chunks[0], parse_mode=None)
+    for chunk in chunks[1:]:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=chunk,
+            parse_mode=None,
+        )
+
+
 async def execute_strategy(update: Update, context: ContextTypes.DEFAULT_TYPE, mode_key: str):
-    """Calls choosen stretegy and displayes result with safe parser."""
+    """Run a selected mode and show its result as plain text."""
     strategy = MODES.get(mode_key)
     if not strategy:
         return
@@ -152,19 +273,53 @@ async def execute_strategy(update: Update, context: ContextTypes.DEFAULT_TYPE, m
 
     try:
         result = await strategy.execute(update, context)
-        
-        # Attempt to send with  Markdown formatting
-        try:
-            await status_msg.edit_text(result, parse_mode=ParseMode.MARKDOWN)
-        except BadRequest as e:
-            # If Telegram don't accept unclosed tags Markdown, send as a plain text
-            print(f"Markdown parsing failed, sending raw text: {e}")
-            await status_msg.edit_text(result, parse_mode=None)
-
     except Exception as e:
-        await status_msg.edit_text(f"⚠️ Got an error during processing: {e}")
+        print(f"Error while executing {mode_key}: {e}")
+        await status_msg.edit_text(
+            f"⚠️ Got an error during processing: {e}",
+            parse_mode=None,
+        )
+        return
 
-    await send_buttons(update, context, "<b>What are you going to select?</b>", ACTION_BUTTONS)
+    context.user_data["step"] = "AWAITING_ADJUSTMENT"
+    context.user_data["last_mode"] = mode_key
+    context.user_data["last_result"] = result
+    context.user_data["mode_adjustments"] = []
+    await send_result(status_msg, update, context, result)
+    await send_mode_actions(update, context, mode_key)
+
+
+async def download_tailored_resume(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Generate and send the tailored resume PDF after a resume audit."""
+    strategy = MODES["review"]
+    status_msg = await send_text(
+        update,
+        context,
+        "🤖 Preparing your tailored resume PDF. Please wait...",
+    )
+    try:
+        resume_text = await strategy.generate_tailored_resume(context)
+        pdf_file = create_resume_pdf(resume_text)
+        await context.bot.send_document(
+            chat_id=update.effective_chat.id,
+            document=pdf_file,
+            filename="tailored_resume.pdf",
+            caption="Your tailored resume is ready.",
+        )
+        await status_msg.edit_text("✅ Tailored resume PDF generated.", parse_mode=None)
+    except GeminiQuotaExceeded as error:
+        print(f"Gemini quota exhausted while generating tailored resume: {error}")
+        await status_msg.edit_text(
+            quota_exhausted_message(error) + " This request was not retried.",
+            parse_mode=None,
+        )
+    except Exception as e:
+        print(f"Error while generating tailored resume PDF: {e}")
+        await status_msg.edit_text(
+            "⚠️ I could not generate the tailored resume PDF. "
+            "Please try again later or contact support if the problem continues.",
+            parse_mode=None,
+        )
 
 
 async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -176,6 +331,23 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
 
     if action == "cmd_restart":
         await start(update, context)
+        return
+
+    if action == "action_retry_adjustment":
+        await retry_saved_adjustments(update, context)
+        return
+
+    if action == "action_resume_pdf":
+        if (
+            not context.user_data.get("cv_text")
+            or not context.user_data.get("vacancy_text")
+        ):
+            await send_text(update, context, "⚠️ Please load your CV and job description first. Press /start.")
+            return
+        if context.user_data.get("last_mode") != "review":
+            await send_text(update, context, "Please run the resume audit before generating its tailored PDF.")
+            return
+        await download_tailored_resume(update, context)
         return
 
     if action.startswith("mode_"):
@@ -202,7 +374,12 @@ def main():
     # Hendlers
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler(["review", "cover_letter", "linkedin", "summary"], command_menu_handler))
-    app.add_handler(CallbackQueryHandler(handle_callback_query, pattern="^(mode_|cmd_restart)"))
+    app.add_handler(
+        CallbackQueryHandler(
+            handle_callback_query,
+            pattern="^(mode_|cmd_restart|action_)",
+        )
+    )
     app.add_handler(MessageHandler(filters.TEXT | filters.Document.ALL, handle_user_input))
 
     print("Bot is up and running with stateful architecture...")
