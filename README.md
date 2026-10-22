@@ -38,6 +38,12 @@ The bot keeps each user's CV, vacancy, selected mode, latest result, corrections
 5. Start over
    - Restart or `/start` clears the current user's documents, results, corrections, and generated-resume cache, then returns to CV upload.
 
+
+# CV Enhancement Telegram Bot State Diagram
+
+<img src="assets/cv_enhancement_bot_state_diagram.png" alt="CV Enhancement Telegram Bot State Diagram" width="500">
+
+
 ```mermaid
 stateDiagram-v2
     [*] --> WaitingForCV : /start or Restart
